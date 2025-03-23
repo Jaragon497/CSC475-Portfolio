@@ -1,9 +1,13 @@
 package com.example.recipelogger
 
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.view.Menu
 import android.view.MenuItem
 import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.lifecycle.ViewModelProvider
@@ -12,6 +16,8 @@ class RecipeDetailActivity : AppCompatActivity() {
 
     private val TAG = "RecipeLogger"
     private lateinit var recipeViewModel: RecipeViewModel
+    private var currentRecipe: Recipe? = null
+    private var recipeId: Int = -1
 
     override fun onCreate(savedInstanceState: Bundle?) {
         try {
@@ -29,7 +35,7 @@ class RecipeDetailActivity : AppCompatActivity() {
             supportActionBar?.setDisplayShowHomeEnabled(true)
 
             // Get recipe ID from intent
-            val recipeId = intent.getIntExtra(MainActivity.EXTRA_RECIPE_ID, -1)
+            recipeId = intent.getIntExtra(MainActivity.EXTRA_RECIPE_ID, -1)
             Log.d(TAG, "DetailActivity onCreate - got recipe ID: $recipeId")
 
             if (recipeId == -1) {
@@ -45,6 +51,9 @@ class RecipeDetailActivity : AppCompatActivity() {
             recipeViewModel.getRecipeById(recipeId).observe(this) { recipe ->
                 if (recipe != null) {
                     Log.d(TAG, "DetailActivity - observed recipe: ${recipe.title}")
+                    // Save the current recipe
+                    currentRecipe = recipe
+
                     // Set title in the toolbar
                     supportActionBar?.title = recipe.title
 
@@ -59,6 +68,55 @@ class RecipeDetailActivity : AppCompatActivity() {
             Log.d(TAG, "DetailActivity onCreate - completed")
         } catch (e: Exception) {
             Log.e(TAG, "Error in DetailActivity.onCreate", e)
+        }
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.menu_detail, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            android.R.id.home -> {
+                // Handle back button in action bar
+                onBackPressed()
+                true
+            }
+            R.id.action_edit -> {
+                // Open edit screen with current recipe
+                currentRecipe?.let { recipe ->
+                    val intent = Intent(this, AddRecipeActivity::class.java)
+                    intent.putExtra(AddRecipeActivity.EXTRA_RECIPE_ID, recipe.id)
+                    startActivity(intent)
+                }
+                true
+            }
+            R.id.action_delete -> {
+                // Show confirmation dialog before deleting
+                confirmDeleteRecipe()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+
+    private fun confirmDeleteRecipe() {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.delete_confirmation_title)
+            .setMessage(R.string.delete_confirmation_message)
+            .setPositiveButton(R.string.delete) { _, _ ->
+                deleteRecipe()
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun deleteRecipe() {
+        currentRecipe?.let { recipe ->
+            recipeViewModel.delete(recipe)
+            Toast.makeText(this, R.string.recipe_deleted, Toast.LENGTH_SHORT).show()
+            finish()
         }
     }
 
@@ -94,17 +152,6 @@ class RecipeDetailActivity : AppCompatActivity() {
             Log.d(TAG, "displayRecipe - completed")
         } catch (e: Exception) {
             Log.e(TAG, "Error in displayRecipe", e)
-        }
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        return when (item.itemId) {
-            android.R.id.home -> {
-                // Handle back button in action bar
-                onBackPressed()
-                true
-            }
-            else -> super.onOptionsItemSelected(item)
         }
     }
 }

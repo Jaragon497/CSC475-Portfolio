@@ -15,6 +15,10 @@ class AddRecipeActivity : AppCompatActivity() {
     private val TAG = "RecipeLogger"
     private lateinit var recipeViewModel: RecipeViewModel
 
+    // Track if we're editing an existing recipe
+    private var isEditMode = false
+    private var recipeId = -1
+
     // UI Components
     private lateinit var titleEditText: EditText
     private lateinit var descriptionEditText: EditText
@@ -23,6 +27,10 @@ class AddRecipeActivity : AppCompatActivity() {
     private lateinit var cookTimeEditText: EditText
     private lateinit var servingsEditText: EditText
     private lateinit var instructionsEditText: EditText
+
+    companion object {
+        const val EXTRA_RECIPE_ID = "com.example.recipelogger.RECIPE_ID"
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         try {
@@ -37,7 +45,13 @@ class AddRecipeActivity : AppCompatActivity() {
             // Enable up button
             supportActionBar?.setDisplayHomeAsUpEnabled(true)
             supportActionBar?.setDisplayShowHomeEnabled(true)
-            supportActionBar?.title = getString(R.string.add_recipe)
+
+            // Check if we're editing an existing recipe
+            recipeId = intent.getIntExtra(EXTRA_RECIPE_ID, -1)
+            isEditMode = recipeId != -1
+
+            // Set title based on mode
+            supportActionBar?.title = if (isEditMode) getString(R.string.edit_recipe) else getString(R.string.add_recipe)
 
             // Initialize UI components
             titleEditText = findViewById(R.id.edit_title)
@@ -51,8 +65,14 @@ class AddRecipeActivity : AppCompatActivity() {
             // Initialize ViewModel
             recipeViewModel = ViewModelProvider(this).get(RecipeViewModel::class.java)
 
+            // If editing, load the existing recipe data
+            if (isEditMode) {
+                loadRecipeForEditing()
+            }
+
             // Set up Save button
             val saveButton = findViewById<Button>(R.id.button_save)
+            saveButton.text = if (isEditMode) getString(R.string.update_recipe) else getString(R.string.save_recipe)
             saveButton.setOnClickListener {
                 saveRecipe()
             }
@@ -60,6 +80,30 @@ class AddRecipeActivity : AppCompatActivity() {
             Log.d(TAG, "AddRecipeActivity onCreate - completed")
         } catch (e: Exception) {
             Log.e(TAG, "Error in AddRecipeActivity.onCreate", e)
+        }
+    }
+
+    private fun loadRecipeForEditing() {
+        recipeViewModel.getRecipeById(recipeId).observe(this) { recipe ->
+            if (recipe != null) {
+                // Populate UI fields with recipe data
+                titleEditText.setText(recipe.title)
+                descriptionEditText.setText(recipe.description)
+                prepTimeEditText.setText(recipe.prepTime.toString())
+                cookTimeEditText.setText(recipe.cookTime.toString())
+                servingsEditText.setText(recipe.servings.toString())
+
+                // Convert ingredients list to string
+                val ingredientsText = recipe.ingredients.joinToString("\n")
+                ingredientsEditText.setText(ingredientsText)
+
+                // Convert instructions list to string
+                val instructionsText = recipe.instructions.joinToString("\n\n")
+                instructionsEditText.setText(instructionsText)
+            } else {
+                Toast.makeText(this, R.string.recipe_not_found, Toast.LENGTH_SHORT).show()
+                finish()
+            }
         }
     }
 
@@ -97,6 +141,7 @@ class AddRecipeActivity : AppCompatActivity() {
 
             // Create Recipe object
             val recipe = Recipe(
+                id = if (isEditMode) recipeId else 0,
                 title = title,
                 description = description,
                 ingredients = ingredients,
@@ -106,19 +151,28 @@ class AddRecipeActivity : AppCompatActivity() {
                 instructions = instructions
             )
 
-            // Insert recipe into database
-            recipeViewModel.insert(recipe) { newId ->
-                Log.d(TAG, "Recipe inserted with ID: $newId")
+            // Update or insert recipe
+            if (isEditMode) {
+                // Update existing recipe
+                recipeViewModel.update(recipe)
+                Toast.makeText(
+                    this,
+                    R.string.recipe_updated,
+                    Toast.LENGTH_SHORT
+                ).show()
+            } else {
+                // Insert new recipe
+                recipeViewModel.insert(recipe) { newId ->
+                    Log.d(TAG, "Recipe inserted with ID: $newId")
+                }
+                Toast.makeText(
+                    this,
+                    R.string.recipe_saved,
+                    Toast.LENGTH_SHORT
+                ).show()
             }
 
-            // Show success message
-            Toast.makeText(
-                this,
-                R.string.recipe_saved,
-                Toast.LENGTH_SHORT
-            ).show()
-
-            // Go back to main screen
+            // Go back to previous screen
             finish()
 
         } catch (e: Exception) {
