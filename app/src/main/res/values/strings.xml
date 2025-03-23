@@ -1,8 +1,25 @@
 <resources>
+    <!-- App and UI strings -->
     <string name="app_name">Recipe Logger</string>
     <string name="ingredients">Ingredients</string>
     <string name="instructions">Instructions</string>
     <string name="prep_time_format">Prep: %d min</string>
     <string name="cook_time_format">Cook: %d min</string>
     <string name="servings_format">Serves: %d</string>
+
+    <!-- Layout behavior string for Material Design -->
+    <string name="appbar_scrolling_view_behavior">com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior</string>
+
+    <!-- Add Recipe screen -->
+    <string name="add_recipe">Add Recipe</string>
+    <string name="title">Title</string>
+    <string name="description">Description</string>
+    <string name="prep_time_mins">Prep Time (mins)</string>
+    <string name="cook_time_mins">Cook Time (mins)</string>
+    <string name="servings">Servings</string>
+    <string name="ingredients_hint">Ingredients (one per line)</string>
+    <string name="instructions_hint">Instructions (separate steps with blank lines)</string>
+    <string name="save_recipe">Save Recipe</string>
+    <string name="empty_fields_message">Please fill in all required fields</string>
+    <string name="recipe_saved">Recipe saved successfully</string>
 </resources>

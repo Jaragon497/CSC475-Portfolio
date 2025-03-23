@@ -2,13 +2,16 @@ package com.example.recipelogger
 
 import android.os.Bundle
 import android.util.Log
+import android.view.MenuItem
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
+import androidx.lifecycle.ViewModelProvider
 
 class RecipeDetailActivity : AppCompatActivity() {
 
     private val TAG = "RecipeLogger"
+    private lateinit var recipeViewModel: RecipeViewModel
 
     override fun onCreate(savedInstanceState: Bundle?) {
         try {
@@ -29,22 +32,30 @@ class RecipeDetailActivity : AppCompatActivity() {
             val recipeId = intent.getIntExtra(MainActivity.EXTRA_RECIPE_ID, -1)
             Log.d(TAG, "DetailActivity onCreate - got recipe ID: $recipeId")
 
-            // Find the recipe with matching ID
-            val recipe = MainActivity.sampleRecipes.find { it.id == recipeId }
-
-            if (recipe == null) {
-                Log.e(TAG, "DetailActivity onCreate - recipe not found for ID: $recipeId")
+            if (recipeId == -1) {
+                Log.e(TAG, "DetailActivity onCreate - invalid recipe ID")
                 finish()
                 return
             }
 
-            Log.d(TAG, "DetailActivity onCreate - found recipe: ${recipe.title}")
+            // Set up the ViewModel
+            recipeViewModel = ViewModelProvider(this).get(RecipeViewModel::class.java)
 
-            // Set title in the toolbar
-            supportActionBar?.title = recipe.title
+            // Observe the recipe
+            recipeViewModel.getRecipeById(recipeId).observe(this) { recipe ->
+                if (recipe != null) {
+                    Log.d(TAG, "DetailActivity - observed recipe: ${recipe.title}")
+                    // Set title in the toolbar
+                    supportActionBar?.title = recipe.title
 
-            // Display the recipe details
-            displayRecipe(recipe)
+                    // Display the recipe details
+                    displayRecipe(recipe)
+                } else {
+                    Log.e(TAG, "DetailActivity - recipe not found for ID: $recipeId")
+                    finish()
+                }
+            }
+
             Log.d(TAG, "DetailActivity onCreate - completed")
         } catch (e: Exception) {
             Log.e(TAG, "Error in DetailActivity.onCreate", e)
@@ -86,8 +97,14 @@ class RecipeDetailActivity : AppCompatActivity() {
         }
     }
 
-    override fun onSupportNavigateUp(): Boolean {
-        onBackPressed()
-        return true
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            android.R.id.home -> {
+                // Handle back button in action bar
+                onBackPressed()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
     }
 }

@@ -5,14 +5,17 @@ import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
+import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 
 class MainActivity : AppCompatActivity() {
 
     private val TAG = "RecipeLogger"
+    private lateinit var recipeViewModel: RecipeViewModel
 
-    // Move sample recipes to companion object so they can be accessed statically
+    // Sample recipes moved to companion object so they can be accessed for initial database population
     companion object {
         const val EXTRA_RECIPE_ID = "com.example.recipelogger.RECIPE_ID"
 
@@ -103,14 +106,12 @@ class MainActivity : AppCompatActivity() {
             val toolbar = findViewById<Toolbar>(R.id.toolbar)
             setSupportActionBar(toolbar)
 
+            // Setup RecyclerView
             Log.d(TAG, "MainActivity onCreate - finding RecyclerView")
             val recyclerView = findViewById<RecyclerView>(R.id.recyclerview)
 
-            Log.d(TAG, "MainActivity onCreate - setting LayoutManager")
-            recyclerView.layoutManager = GridLayoutManager(this, 2) // 2 columns grid
-
-            Log.d(TAG, "MainActivity onCreate - creating adapter")
-            val adapter = RecipeAdapter(sampleRecipes) { recipe ->
+            // Create the adapter - passing an empty list for now, it will be updated by the observer
+            val adapter = RecipeAdapter(emptyList()) { recipe ->
                 // Navigate to detail screen
                 Log.d(TAG, "Clicked on recipe: ${recipe.title}")
                 val intent = Intent(this, RecipeDetailActivity::class.java)
@@ -118,8 +119,31 @@ class MainActivity : AppCompatActivity() {
                 startActivity(intent)
             }
 
+            Log.d(TAG, "MainActivity onCreate - setting LayoutManager")
+            recyclerView.layoutManager = GridLayoutManager(this, 2) // 2 columns grid
+
             Log.d(TAG, "MainActivity onCreate - setting adapter")
             recyclerView.adapter = adapter
+
+            // Set up the ViewModel
+            recipeViewModel = ViewModelProvider(this).get(RecipeViewModel::class.java)
+
+            // Observer for the LiveData returned by getAllRecipes
+            recipeViewModel.allRecipes.observe(this) { recipes ->
+                Log.d(TAG, "Observed ${recipes.size} recipes from database")
+                // Update the cached copy of the recipes in the adapter
+                recipes?.let {
+                    adapter.updateRecipes(it)
+                }
+            }
+
+            // Set up FloatingActionButton for adding new recipes
+            val fab = findViewById<FloatingActionButton>(R.id.fab_add_recipe)
+            fab.setOnClickListener {
+                val intent = Intent(this, AddRecipeActivity::class.java)
+                startActivity(intent)
+            }
+
             Log.d(TAG, "MainActivity onCreate - completed")
         } catch (e: Exception) {
             Log.e(TAG, "Error in MainActivity.onCreate", e)

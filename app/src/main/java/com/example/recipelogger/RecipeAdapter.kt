@@ -8,7 +8,7 @@ import androidx.cardview.widget.CardView
 import androidx.recyclerview.widget.RecyclerView
 
 class RecipeAdapter(
-    private val recipes: List<Recipe>,
+    private var recipes: List<Recipe>,
     private val onItemClick: (Recipe) -> Unit
 ) : RecyclerView.Adapter<RecipeAdapter.RecipeViewHolder>() {
 
@@ -42,4 +42,13 @@ class RecipeAdapter(
     }
 
     override fun getItemCount() = recipes.size
+
+    /**
+     * Updates the list of recipes in the adapter.
+     * This is needed to refresh the adapter when recipes change in the database.
+     */
+    fun updateRecipes(newRecipes: List<Recipe>) {
+        recipes = newRecipes
+        notifyDataSetChanged()
+    }
 }
